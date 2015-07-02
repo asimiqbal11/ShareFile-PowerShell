@@ -10,6 +10,7 @@ using System.IO;
 using ShareFile.Api.Client.Requests;
 using Newtonsoft.Json;
 using ShareFile.Api.Client.Exceptions;
+using System.Collections;
 using ShareFile.Api.Client.Requests.Filters;
 using System.Text.RegularExpressions;
 
@@ -131,8 +132,15 @@ namespace ShareFile.Api.Powershell
             {
                 WriteError(new ErrorRecord(new Exception(e.Code.ToString() + ": " + e.ODataExceptionMessage.Message), e.Code.ToString(), ErrorCategory.NotSpecified, query.GetEntity()));
             }
+            catch(Exception e)
+            {
+                ShowSuggestion(Entity,Action,Parameters);
+                throw;
+            }
         }
 
+
+        
         private IFilter AddFilter()
         {
             FilterBuilder builder = new FilterBuilder(Filter);
@@ -372,9 +380,9 @@ namespace ShareFile.Api.Powershell
             /// The values in both stacks are in order, it will pick one by one operator from stack 
             /// and depending on operator type it will fetch the property names and values (operands) to generate the Filter
             /// </summary>
-            /// <returns></returns>
-            private IFilter GetFilter()
-            {
+           /// <returns></returns>
+           private IFilter GetFilter()
+           {
                 // Keep track of all the IFilter instances, if two Filters are added in it then next operator must be 'and' or 'or' operation to generate one expression
                 Stack<IFilter> operations = new Stack<IFilter>();
                 IFilter filterType = null;
@@ -404,7 +412,7 @@ namespace ShareFile.Api.Powershell
 
                             filterType = CreateFilter(operators, propertyName, propertyValue);
                             break;
-
+                        /* currently not supported
                         case OperatorType.add:
                         case OperatorType.sub:
                         case OperatorType.mul:
@@ -417,7 +425,7 @@ namespace ShareFile.Api.Powershell
 
                             filterType = CreateFilter(operators, propertyName, propertyValue, operatorInner, propertyValue2);
                             break;
-
+                        */
                         case OperatorType.and:
                             right = operations.Pop();
                             left = operations.Pop();
@@ -429,11 +437,12 @@ namespace ShareFile.Api.Powershell
                             left = operations.Pop();
                             filterType = new OrFilter(left, right);
                             break;
-
+                        /* currently not supported
                         case OperatorType.not:
                             right = operations.Pop();
                             filterType = new NotFilter(right);
                             break;
+                         */
                     }
 
                     operations.Push(filterType);
@@ -493,6 +502,7 @@ namespace ShareFile.Api.Powershell
                     case OperatorType.substringof:
                         filter = new SubstringFilter(propertyName, propertyValue);
                         break;
+                    /* currently not supported
                     case OperatorType.lt:
                         filter = new LessThanFilter(propertyName, propertyValue);
                         break;
@@ -505,11 +515,12 @@ namespace ShareFile.Api.Powershell
                     case OperatorType.ge:
                         filter = new GreaterThanOrEqualFilter(propertyName, propertyValue);
                         break;
+                     */
                 }
 
                 return filter;
             }
-
+            /*
             private IFilter CreateFilter(OperatorType operators, string propertyName, string propertyValue1, OperatorType innerOperator, string propertyValue2)
             {
                 IFilter filter = null;
@@ -534,6 +545,40 @@ namespace ShareFile.Api.Powershell
 
                 return filter;
             }
+             */
+        }
+     
+ 
+        private void ShowSuggestion(string Entity, string Action, Hashtable parameters)
+        {
+            if("Items".Equals(Entity,StringComparison.CurrentCultureIgnoreCase) &&
+               "Download".Equals(Action,StringComparison.CurrentCultureIgnoreCase) && 
+               IsMissingParam("redirect",parameters))
+
+            {                
+                WriteWarning("You may want to append:    -Parameters @{'redirect' = \"false\"}    for the command to work correctly.\n\n");
+                return;
+            }          
+  
+            ///Add more suggestions here.
+        }
+
+        private bool IsMissingParam(string param, Hashtable parameters)
+        {
+             if(parameters == null || param == null)
+             {
+                 return true;
+             }
+
+             foreach (DictionaryEntry entry in parameters)
+             {
+                 if(entry.Key.Equals(param))
+                 {
+                     return false;
+                 }
+             }
+
+             return true;
         }
     }
 }
