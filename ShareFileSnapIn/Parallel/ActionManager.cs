@@ -77,7 +77,7 @@ namespace ShareFile.Api.Powershell.Parallel
                     if (ActionsQueue.Count > 0 && runningThreads < maxParallelThreads)
                     {
                         runningThreads++;
-                        IAction downloadAction = ActionsQueue.Dequeue();
+                        IAction action = ActionsQueue.Dequeue();
 
                         Task t = Task.Factory.StartNew(() =>
                         {
@@ -90,7 +90,7 @@ namespace ShareFile.Api.Powershell.Parallel
 
                                 ProgressInfoList.Add(threadIndex++, fileProgressInfo);
 
-                                downloadAction.CopyFileItem(fileProgressInfo);
+                                action.CopyFileItem(fileProgressInfo);
                             }
                             catch (Exception error)
                             {
@@ -159,7 +159,7 @@ namespace ShareFile.Api.Powershell.Parallel
 
                 int percentComplete = (int)(done * 100 / total);
                 ProgressRecord progress = new ProgressRecord(1,
-                    string.Format("Copying '{0}'", this.folderName),
+                    string.Format("Transferring '{0}'", this.folderName),
                     string.Format("{0}% of {1}", percentComplete, GetSize(total)));
 
                 progress.PercentComplete = percentComplete;
